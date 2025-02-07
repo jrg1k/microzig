@@ -5,9 +5,13 @@ const Self = @This();
 
 chips: struct {
     lpc176x5x: *const microzig.Target,
+    lpc55s69: *const microzig.Target,
 },
 
 boards: struct {
+    nxp: struct {
+        lpcxpresso55s69: *const microzig.Target,
+    },
     mbed: struct {
         lpc1768: *const microzig.Target,
     },
@@ -41,11 +45,42 @@ pub fn init(dep: *std.Build.Dependency) Self {
         .patch_elf = lpc176x5x_patch_elf,
     };
 
+    const chip_lpc55s69: microzig.Target = .{
+        .dep = dep,
+        .preferred_binary_format = .elf,
+        .chip = .{
+            .name = "LPC55S69_cm33_core0",
+            .cpu = .{
+                .cpu_arch = .thumb,
+                .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m33 },
+                .os_tag = .freestanding,
+                .abi = .eabi,
+            },
+            .register_definition = .{
+                .svd = b.path("src/chips/LPC55S69_cm33_core0.svd"),
+            },
+            .memory_regions = &.{
+                .{ .kind = .flash, .offset = 0x00000000, .length = 1024 * 630 },
+                .{ .kind = .ram, .offset = 0x20000000, .length = 1024 * 256 },
+                .{ .kind = .ram, .offset = 0x40100000, .length = 1024 * 16 },
+            },
+        },
+    };
+
     return .{
         .chips = .{
             .lpc176x5x = chip_lpc176x5x.derive(.{}),
+            .lpc55s69 = chip_lpc55s69.derive(.{}),
         },
         .boards = .{
+            .nxp = .{
+                .lpcxpresso55s69 = chip_lpc55s69.derive(.{
+                    .board = .{
+                        .name = "LPCXpresso55S69",
+                        .root_source_file = b.path("src/boards/nxp_LPCXpresso55S69.zig"),
+                    },
+                }),
+            },
             .mbed = .{
                 .lpc1768 = chip_lpc176x5x.derive(.{
                     .board = .{
